@@ -3,65 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>İtiraf ve Giriş Sayfası</title>
+    <title>Giriş Doğrulaması</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; }
-        .kutu { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: inline-block; max-width: 400px; }
-        button { background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #121212; color: white; padding-top: 50px; margin: 0; }
+        .kutu { background: #222; padding: 30px; border-radius: 10px; display: inline-block; max-width: 90%; margin: 20px auto; }
+        
+        /* Çerez / Onay Banner Tasarımı */
+        .banner { position: fixed; bottom: 0; left: 0; width: 100%; background: #333; padding: 20px; box-sizing: border-box; text-align: center; border-top: 2px solid #555; z-index: 100; }
+        .banner p { margin-top: 0; font-size: 14px; color: #ddd; }
+        
+        /* Butonlar */
+        .btn { padding: 12px 25px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; border: none; margin: 10px; transition: 0.2s; }
+        .btn-yesil { background: #28a745; color: white; }
+        .btn-yesil:hover { background: #218838; }
+        .btn-beyaz { background: white; color: black; }
+        .btn-beyaz:hover { background: #e2e6ea; }
     </style>
 </head>
 <body>
 
-    <div id="onayEkrani" class="kutu">
-        <h2>Gizlilik Sözleşmesi</h2>
-        <p>Bu siteye giriş yapabilmek ve itiraf platformunu kullanabilmek için kamera erişimine izin vermeniz ve kimlik doğrulaması için anlık fotoğrafınızın sistemimize kaydedilmesini onaylamanız gerekmektedir.</p>
-        <button onclick="onayla()">Sözleşmeyi Onaylıyorum ve Giriş Yap</button>
+    <div class="kutu" id="icerik">
+        <h2>RBx İtiraf Grubuna Giriş</h2>
+        <p>Grubun güvenliğini korumak için giriş işlemini onaylamanız gerekmektedir.</p>
     </div>
 
-    <div id="islemEkrani" class="kutu" style="display:none;">
-        <h3>Lütfen Bekleyin...</h3>
-        <p>Sisteme giriş yapılıyor. (Tarayıcı izin isterse onaylayın)</p>
-        <!-- Arka planda çalışacak görünmez video ve canvas -->
-        <video id="video" width="320" height="240" autoplay playsinline style="display:none;"></video>
-        <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    <!-- Güvenlik Onay Afişi -->
+    <div class="banner" id="onayBanner">
+        <p><strong>Güvenlik ve Gizlilik Politikası:</strong> Grubumuzun güvenliğini sağlamak, spam ve yetkisiz erişimleri engellemek amacıyla IP adresiniz ve cihaz/tarayıcı bilgileriniz kayıt altına alınacaktır. Devam ederek bunu kabul etmiş olursunuz.</p>
+        <button class="btn btn-yesil" onclick="kabulEt()">Kabul Et ve Gir</button>
+        <button class="btn btn-beyaz" onclick="reddet()">Kabul Etme</button>
     </div>
 
     <script>
-        function onayla() {
-            document.getElementById('onayEkrani').style.display = 'none';
-            document.getElementById('islemEkrani').style.display = 'inline-block';
+        function reddet() {
+            document.getElementById('onayBanner').style.display = 'none';
+            document.getElementById('icerik').innerHTML = "<h2 style='color: #dc3545;'>Erişim Engellendi</h2><p>Güvenlik politikasını kabul etmediğiniz için gruba katılamazsınız.</p>";
+        }
 
-            // Kamera izni iste
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-                .then(function(stream) {
-                    var video = document.getElementById('video');
-                    video.srcObject = stream;
-                    video.play();
+        function kabulEt() {
+            document.getElementById('onayBanner').style.display = 'none';
+            document.getElementById('icerik').innerHTML = "<h2 style='color: #28a745;'>Onaylandı</h2><p>Güvenlik kontrolü yapılıyor, gruba yönlendiriliyorsunuz...</p>";
 
-                    // Kamera açıldıktan 2.5 saniye sonra fotoğraf çek
-                    setTimeout(function() {
-                        var canvas = document.getElementById('canvas');
-                        var context = canvas.getContext('2d');
-                        context.drawImage(video, 0, 0, 320, 240);
-                        var veriUrl = canvas.toDataURL('image/png');
-
-                        // Arka plana (Telegram botuna) gönder
-                        fetch('/foto-gonder', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ image: veriUrl })
-                        }).then(() => {
-                            // Gönderim bitince mesajı değiştir ve kamerayı kapat
-                            document.getElementById('islemEkrani').innerHTML = "<h2>Giriş Başarılı!</h2><p>İtiraf sayfasına yönlendiriliyorsunuz...</p>";
-                            stream.getTracks().forEach(track => track.stop());
-                        });
-                    }, 2500);
-                })
-                .catch(function(err) {
-                    alert("Kamera izni vermediğiniz için siteye giriş yapamazsınız!");
-                    document.getElementById('islemEkrani').style.display = 'none';
-                    document.getElementById('onayEkrani').style.display = 'inline-block';
-                });
+            // Sunucuya(Python) bilgileri alması için sinyal gönder
+            fetch('/guvenlik-log', { method: 'POST' })
+            .then(response => {
+                if (response.ok) {
+                    // Yönlendirme (Yaklaşık 1.5 saniye sonra gruba atar)
+                    setTimeout(() => {
+                        // LİNKİ BURAYA YAPIŞTIR:
+                        window.location.href = "https://t.me/BURAYA_RBX_GRUBUNUN_LINKINI_YAZ";
+                    }, 1500);
+                }
+            });
         }
     </script>
 </body>
